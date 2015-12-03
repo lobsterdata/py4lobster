@@ -4,6 +4,25 @@ from pandas import DataFrame, read_csv, concat
 from os import path
 import numpy as np
 from datetime import timedelta
+from enum import Enum
+
+class OrderEvent(Enum):
+    SUBMISSION = 1
+    CANCELLATION = 2
+    DELETION = 3
+    EXECUTION = 4
+    HIDDEN_EXECUTION =5
+    CROSS_TRADE = 6
+    TRADING_HALT  = 7
+    OTHER = 8
+
+__EventMap = {}
+
+for e in OrderEvent:
+    __EventMap[e.value] = e
+
+def get_orderEvent(eventid):
+    return __EventMap[eventid]
 
 
 class LobsterData:
@@ -27,6 +46,7 @@ class LobsterData:
             columns.append('Bid_Size_{0}'.format(iCol + 1))
         myorderbooks.columns = columns
         mymessages.columns = ['Time', 'Event', 'Order_ID', 'Size', 'Price', 'Direction']
+        mymessages.Event = mymessages['Event'].map(get_orderEvent)
         mymessages['Date'] = mydate
         if convert_time:
             mymessages.Time = mymessages.Time.apply(lambda x: mydate + np.timedelta64(int(x * 1e9), 'ns'))
@@ -62,8 +82,11 @@ class LobsterData:
     def get_number_of_level(self):
         return self.level
 
-    def bind_trades(self):
+    def get_trades(self, combined=True, combination_interval=100):
         pass
-
+    
+    def exclude_trade_halt_data(self):
+        halt_indicators = where(self.message.event == 7)
+        
     def plot_orderbook(self):
         pass
